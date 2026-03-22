@@ -1,0 +1,57 @@
+[
+  {
+    "id": "h",
+    "symbol": "H",
+    "name": "Hydrogen",
+    "category": "Nonmetal",
+    "color": "#E2E8F0",
+    "valency": 1,
+    "atomicNumber": 1,
+    "bondingBehavior": "Forms single covalent bonds.",
+    "description": "The lightest and most abundant element in the universe."
+  },
+  {
+    "id": "o",
+    "symbol": "O",
+    "name": "Oxygen",
+    "category": "Nonmetal",
+    "color": "#EF4444",
+    "valency": 2,
+    "atomicNumber": 8,
+    "bondingBehavior": "Highly electronegative, forms two bonds.",
+    "description": "A highly reactive nonmetal and oxidizing agent."
+  },
+  {
+    "id": "na",
+    "symbol": "Na",
+    "name": "Sodium",
+    "category": "Alkali Metal",
+    "color": "#FBBF24",
+    "valency": 1,
+    "atomicNumber": 11,
+    "bondingBehavior": "Loses one electron to form ionic bonds.",
+    "description": "A soft, silvery-white, highly reactive metal."
+  },
+  {
+    "id": "cl",
+    "symbol": "Cl",
+    "name": "Chlorine",
+    "category": "Halogen",
+    "color": "#10B981",
+    "valency": 1,
+    "atomicNumber": 17,
+    "bondingBehavior": "Gains one electron to form ionic or covalent bonds.",
+    "description": "A yellow-green gas at room temperature, very reactive."
+  },
+  {
+    "id": "c",
+    "symbol": "C",
+    "name": "Carbon",
+    "category": "Nonmetal",
+    "color": "#1F2937",
+    "valency": 4,
+    "atomicNumber": 6,
+    "bondingBehavior": "Forms four covalent bonds, the backbone of organic chemistry.",
+    "description": "The basis of all known life on Earth."
+  }
+]

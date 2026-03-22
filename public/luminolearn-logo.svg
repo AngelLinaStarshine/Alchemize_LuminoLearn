@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120">
+  <defs>
+    <linearGradient id="blue" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#3b82f6"/>
+      <stop offset="100%" style="stop-color:#1e40af"/>
+    </linearGradient>
+    <linearGradient id="orange" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#fb923c"/>
+      <stop offset="100%" style="stop-color:#ea580c"/>
+    </linearGradient>
+  </defs>
+  <!-- Background circle for dark theme -->
+  <circle cx="60" cy="60" r="55" fill="rgba(255,255,255,0.08)" stroke="rgba(125,207,182,0.2)" stroke-width="1"/>
+  <!-- Blue arc -->
+  <path d="M 12 58 A 48 48 0 0 1 58 12" stroke="url(#blue)" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <!-- Orange arc -->
+  <path d="M 58 108 A 48 48 0 0 1 108 58" stroke="url(#orange)" stroke-width="5" fill="none" stroke-linecap="round"/>
+  <!-- Graduation cap -->
+  <path d="M 38 72 L 60 62 L 82 72 L 60 82 Z" fill="url(#blue)"/>
+  <path d="M 60 62 L 60 90" stroke="#1e40af" stroke-width="2"/>
+  <ellipse cx="60" cy="62" rx="22" ry="6" fill="#1e40af"/>
+  <!-- Pen nib -->
+  <path d="M 60 38 L 56 52 L 60 48 L 64 52 Z" fill="url(#orange)"/>
+  <!-- Laurel accents -->
+  <path d="M 42 82 Q 32 72 38 62" stroke="#ea580c" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <path d="M 78 82 Q 88 72 82 62" stroke="#ea580c" stroke-width="2" fill="none" stroke-linecap="round"/>
+  <!-- Stars -->
+  <polygon points="48,52 50,56 54,56 51,59 52,63 48,61 44,63 45,59 42,56 46,56" fill="#7c3aed"/>
+  <polygon points="72,52 74,56 78,56 75,59 76,63 72,61 68,63 69,59 66,56 70,56" fill="#7c3aed"/>
+</svg>

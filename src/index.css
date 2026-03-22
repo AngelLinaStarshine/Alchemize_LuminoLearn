@@ -1,0 +1,117 @@
+@import url('https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
+@import "tailwindcss";
+
+/* LuminoDesign System - Premium Futuristic Chemistry Lab */
+:root {
+  --lumino-bg: #0f172a;
+  --lumino-bg-elevated: #1e293b;
+  --lumino-bg-card: rgba(30, 41, 59, 0.8);
+  --lumino-turquoise: #7dcfb6;
+  --lumino-turquoise-glow: rgba(125, 207, 182, 0.4);
+  --lumino-yellow: #e8d960;
+  --lumino-yellow-glow: rgba(232, 217, 96, 0.35);
+  --lumino-text: #f8fafc;
+  --lumino-text-muted: #94a3b8;
+  --lumino-border: rgba(125, 207, 182, 0.2);
+  --lumino-success: #34d399;
+  --lumino-error: #f87171;
+  --lumino-radius: 16px;
+  --lumino-radius-sm: 12px;
+  --lumino-shadow: 0 4px 24px rgba(0, 0, 0, 0.3);
+  --lumino-glow: 0 0 40px var(--lumino-turquoise-glow);
+}
+
+@theme {
+  --font-sans: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --color-lumino-bg: var(--lumino-bg);
+  --color-lumino-turquoise: var(--lumino-turquoise);
+  --color-lumino-yellow: var(--lumino-yellow);
+}
+
+html, body {
+  @apply font-sans antialiased overflow-hidden;
+  height: 100%;
+  background: var(--lumino-bg);
+  color: var(--lumino-text);
+}
+
+#root {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* LuminoDesign cards */
+.lumino-card {
+  background: var(--lumino-bg-card);
+  backdrop-filter: blur(12px);
+  border-radius: var(--lumino-radius);
+  border: 1px solid var(--lumino-border);
+  box-shadow: var(--lumino-shadow);
+}
+
+.lumino-card-glow {
+  box-shadow: var(--lumino-shadow), var(--lumino-glow);
+}
+
+/* Element hover glow */
+.element-glow {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.element-glow:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 24px currentColor;
+}
+
+/* Animations */
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
+@keyframes glow-pulse {
+  0%, 100% { opacity: 0.6; box-shadow: 0 0 20px var(--lumino-turquoise-glow); }
+  50% { opacity: 1; box-shadow: 0 0 40px var(--lumino-turquoise-glow); }
+}
+
+@keyframes success-burst {
+  0% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.2); opacity: 0.8; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+@keyframes invalid-drop-shake {
+  0%, 100% { transform: translate(0, 0); }
+  15% { transform: translate(-6px, 0); }
+  30% { transform: translate(6px, 0); }
+  45% { transform: translate(-4px, 0); }
+  60% { transform: translate(4px, 0); }
+  75% { transform: translate(-2px, 0); }
+}
+
+@keyframes repel-shake {
+  10%, 90% { transform: translate3d(-1px, 0, 0); }
+  20%, 80% { transform: translate3d(2px, 0, 0); }
+  30%, 50%, 70% { transform: translate3d(-4px, 0, 0); }
+  40%, 60% { transform: translate3d(4px, 0, 0); }
+}
+
+.invalid-drop-shake {
+  animation: invalid-drop-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.repel-shake {
+  animation: repel-shake 0.5s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.lumino-glow-pulse {
+  animation: glow-pulse 2s ease-in-out infinite;
+}
+
+/* Reaction zone grid */
+.reaction-zone-grid {
+  background-image: 
+    linear-gradient(rgba(125, 207, 182, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(125, 207, 182, 0.03) 1px, transparent 1px);
+  background-size: 24px 24px;
+}

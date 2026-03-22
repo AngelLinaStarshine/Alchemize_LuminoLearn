@@ -1,0 +1,83 @@
+[
+  {
+    "id": "hydrogen",
+    "name": "Hydrogen gas",
+    "formula": "H2",
+    "reactants": { "h": 2 },
+    "equation": "2H → H2",
+    "explanation": "Diatomic hydrogen is the simplest stable molecule.",
+    "visualEffect": "blue-glow",
+    "macroscopicView": "A colorless, odorless gas.",
+    "particleViewDesc": "Two Hydrogen atoms share electrons in a single bond."
+  },
+  {
+    "id": "water",
+    "name": "Water",
+    "formula": "H2O",
+    "reactants": { "h": 2, "o": 1 },
+    "equation": "2H2 + O2 → 2H2O",
+    "explanation": "Water forms when hydrogen reacts with oxygen in the correct ratio. The balance matters because atoms must be conserved in a chemical reaction.",
+    "visualEffect": "blue-glow",
+    "macroscopicView": "A clear, life-sustaining liquid forms.",
+    "particleViewDesc": "Two Hydrogen atoms share electrons with one Oxygen atom to form a stable V-shaped molecule.",
+    "steps": [
+      { "step": 1, "instruction": "Add 2 Hydrogen (H) atoms to the reaction zone", "elementSymbol": "H", "count": 2 },
+      { "step": 2, "instruction": "Add 1 Oxygen (O) atom to the reaction zone", "elementSymbol": "O", "count": 1 },
+      { "step": 3, "instruction": "Click 'Initiate Reaction' to create Water (H2O)" }
+    ]
+  },
+  {
+    "id": "salt",
+    "name": "Sodium Chloride",
+    "formula": "NaCl",
+    "reactants": { "na": 1, "cl": 1 },
+    "equation": "2Na + Cl2 → 2NaCl",
+    "explanation": "Table salt is formed through an ionic bond between sodium and chlorine.",
+    "visualEffect": "white-sparkle",
+    "macroscopicView": "White crystalline solid (table salt) is produced.",
+    "particleViewDesc": "Sodium transfers an electron to Chlorine, creating an electrostatic attraction between Na+ and Cl- ions.",
+    "steps": [
+      { "step": 1, "instruction": "Add 1 Sodium (Na) atom to the reaction zone", "elementSymbol": "Na", "count": 1 },
+      { "step": 2, "instruction": "Add 1 Chlorine (Cl) atom to the reaction zone", "elementSymbol": "Cl", "count": 1 },
+      { "step": 3, "instruction": "Click 'Initiate Reaction' to create Sodium Chloride (NaCl)" }
+    ]
+  },
+  {
+    "id": "oxygen",
+    "name": "Oxygen gas",
+    "formula": "O2",
+    "reactants": { "o": 2 },
+    "equation": "2O → O2",
+    "explanation": "Diatomic oxygen is the form we breathe.",
+    "visualEffect": "red-glow",
+    "macroscopicView": "A colorless, odorless gas essential for life.",
+    "particleViewDesc": "Two Oxygen atoms share electrons in a double bond."
+  },
+  {
+    "id": "methane",
+    "name": "Methane",
+    "formula": "CH4",
+    "reactants": { "c": 1, "h": 4 },
+    "equation": "C + 2H2 → CH4",
+    "explanation": "Methane is the simplest alkane and the main component of natural gas.",
+    "visualEffect": "green-flare",
+    "macroscopicView": "A colorless, odorless flammable gas is formed.",
+    "particleViewDesc": "One Carbon atom forms four single covalent bonds with four Hydrogen atoms in a tetrahedral shape.",
+    "steps": [
+      { "step": 1, "instruction": "Add 1 Carbon (C) atom to the reaction zone", "elementSymbol": "C", "count": 1 },
+      { "step": 2, "instruction": "Add 4 Hydrogen (H) atoms to the reaction zone", "elementSymbol": "H", "count": 4 },
+      { "step": 3, "instruction": "Click 'Initiate Reaction' to create Methane (CH4)" }
+    ]
+  },
+  {
+    "id": "carbon_dioxide",
+    "name": "Carbon dioxide",
+    "formula": "CO2",
+    "reactants": { "c": 1, "o": 2 },
+    "equation": "C + O2 → CO2",
+    "explanation": "Carbon dioxide forms when carbon bonds with two oxygen atoms.",
+    "visualEffect": "gray-glow",
+    "macroscopicView": "A colorless gas released when we exhale.",
+    "particleViewDesc": "One Carbon atom forms double bonds with two Oxygen atoms in a linear shape."
+  }
+]

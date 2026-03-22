@@ -1,0 +1,5 @@
+{
+  "name": "Alchemize: Interactive AI Chemistry Lab",
+  "description": "A gesture-controlled virtual chemistry lab using real-time hand tracking and AI-guided reaction simulations.",
+  "requestFramePermissions": ["camera"]
+}
