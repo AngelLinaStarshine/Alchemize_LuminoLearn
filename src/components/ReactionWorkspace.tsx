@@ -166,7 +166,7 @@ export function ReactionWorkspace({
             <div className="absolute inset-0 z-0">
               <video
                 ref={videoRef}
-                className="w-full h-full object-cover scale-x-[-1] opacity-25"
+                className={`w-full h-full object-cover scale-x-[-1] ${isMobileLayout ? 'opacity-60' : 'opacity-25'}`}
                 playsInline
                 muted
               />
@@ -185,7 +185,9 @@ export function ReactionWorkspace({
               <div
                 className="absolute inset-0 pointer-events-none"
                 style={{
-                  background: 'linear-gradient(to bottom, rgba(15,23,42,0.4) 0%, transparent 30%, transparent 70%, rgba(15,23,42,0.3) 100%)',
+                  background: isMobileLayout
+                    ? 'linear-gradient(to bottom, rgba(15,23,42,0.12) 0%, transparent 22%, transparent 78%, rgba(15,23,42,0.1) 100%)'
+                    : 'linear-gradient(to bottom, rgba(15,23,42,0.4) 0%, transparent 30%, transparent 70%, rgba(15,23,42,0.3) 100%)',
                 }}
               />
             </div>

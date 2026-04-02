@@ -10,15 +10,34 @@ export interface HandState {
   isGrabbing: boolean;
 }
 
-export const useHandTracking = (videoElement: HTMLVideoElement | null, canvasElement: HTMLCanvasElement | null) => {
+export interface UseHandTrackingOptions {
+  /** Thicker skeleton + higher contrast for small screens / touch */
+  enhancedHandDrawing?: boolean;
+}
+
+export const useHandTracking = (
+  videoElement: HTMLVideoElement | null,
+  canvasElement: HTMLCanvasElement | null,
+  options?: UseHandTrackingOptions
+) => {
   const [handState, setHandState] = useState<HandState | null>(null);
   const [isReady, setIsReady] = useState(false);
   const handsRef = useRef<Hands | null>(null);
+  const drawOptsRef = useRef({ enhanced: !!options?.enhancedHandDrawing });
+  drawOptsRef.current = { enhanced: !!options?.enhancedHandDrawing };
 
   const onResults = useCallback((results: Results) => {
     if (!canvasElement) return;
     const canvasCtx = canvasElement.getContext('2d');
     if (!canvasCtx) return;
+
+    const { enhanced } = drawOptsRef.current;
+    const connectorStyle = enhanced
+      ? { color: '#4ade80', lineWidth: 4 }
+      : { color: '#00FF00', lineWidth: 2 };
+    const landmarkStyle = enhanced
+      ? { color: '#f87171', lineWidth: 2, radius: 5 }
+      : { color: '#FF0000', lineWidth: 1, radius: 3 };
 
     canvasCtx.save();
     canvasCtx.clearRect(0, 0, canvasElement.width, canvasElement.height);
@@ -29,8 +48,8 @@ export const useHandTracking = (videoElement: HTMLVideoElement | null, canvasEle
 
     if (results.multiHandLandmarks && results.multiHandLandmarks.length > 0) {
       const landmarks = results.multiHandLandmarks[0];
-      drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, { color: '#00FF00', lineWidth: 2 });
-      drawLandmarks(canvasCtx, landmarks, { color: '#FF0000', lineWidth: 1, radius: 3 });
+      drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, connectorStyle);
+      drawLandmarks(canvasCtx, landmarks, landmarkStyle);
 
       const thumbTip = landmarks[4];
       const indexTip = landmarks[8];

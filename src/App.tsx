@@ -64,8 +64,10 @@ export default function App() {
     typeof window !== 'undefined' &&
     new URLSearchParams(window.location.search).get('debugSlots') === '1';
 
-  const { handState, isReady } = useHandTracking(videoEl, canvasEl);
   const isMobileLayout = useIsMobileLayout();
+  const { handState, isReady } = useHandTracking(videoEl, canvasEl, {
+    enhancedHandDrawing: isMobileLayout,
+  });
   const paletteGapPick = isMobileLayout ? PALETTE_GAP_MOBILE : PALETTE_GAP;
 
   const {
@@ -361,8 +363,29 @@ export default function App() {
 
   return (
     <div className="lumino-app-root min-h-[100dvh] min-h-[100svh] h-[100dvh] h-[100svh] lg:min-h-0 lg:h-screen flex flex-col overflow-hidden bg-[var(--lumino-bg)] pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]">
-      {/* Main layout: stacked on mobile, Task | Workspace on lg+ */}
+      {/* Main layout: mobile = LUMINO → Challenges → Lab; desktop = TaskPanel | header + Lab */}
       <div className="flex flex-col lg:flex-row flex-1 min-h-0 min-h-[0]">
+        {/* Mobile-only: brand above challenges */}
+        <header className="flex shrink-0 items-center gap-3 px-3 py-2.5 border-b border-[var(--lumino-border)] bg-[var(--lumino-bg-elevated)]/80 backdrop-blur-md lg:hidden">
+          <img
+            src="/luminolearn-logo.png"
+            alt="LUMINOLEARN"
+            className="w-11 h-11 shrink-0 object-contain rounded-full bg-white/5 p-0.5 border border-[var(--lumino-border)]"
+            onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = '/luminolearn-logo.svg'; }}
+          />
+          <div className="min-w-0 flex-1">
+            <h1 className="text-base font-black text-[var(--lumino-text)] tracking-tight uppercase truncate">
+              LUMINOLEARN
+            </h1>
+            <p className="text-[10px] text-[var(--lumino-text-muted)] font-medium tracking-wider">
+              Online Learning Academy
+            </p>
+            <p className="text-[9px] text-[var(--lumino-turquoise)] font-semibold uppercase tracking-wide mt-1 leading-snug">
+              Show your hand in the lab • Pinch to grab • Drop in circles
+            </p>
+          </div>
+        </header>
+
         <TaskPanel
           tasks={tasks}
           completedCount={completedCount}
@@ -376,10 +399,10 @@ export default function App() {
           feedbackType={feedback?.type}
         />
 
-        {/* Center: Reaction zone + Action bar */}
+        {/* Lab column: desktop header + (mobile task chip) + workspace + actions */}
         <div className="flex-1 flex flex-col min-w-0 min-h-0 p-2 sm:p-4 gap-2 sm:gap-4">
-          {/* Compact header */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 flex-shrink-0">
+          {/* Desktop header */}
+          <div className="hidden lg:flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 flex-shrink-0">
             <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <img
                 src="/luminolearn-logo.png"
@@ -395,8 +418,7 @@ export default function App() {
                   Online Learning Academy
                 </p>
                 <p className="text-[8px] sm:text-[9px] text-[var(--lumino-turquoise)]/80 uppercase tracking-wider mt-0.5 leading-snug">
-                  <span className="sm:hidden">Pinch • Drop in circles • Check</span>
-                  <span className="hidden sm:inline">Alchemize • Pinch atoms • Drop in zone • Check reaction</span>
+                  Alchemize • Pinch atoms • Drop in zone • Check reaction
                 </p>
               </div>
             </div>
@@ -410,7 +432,16 @@ export default function App() {
             )}
           </div>
 
-          {/* Reaction Zone - main focus (top) */}
+          {activeTask && (
+            <div className="lg:hidden px-3 py-2 rounded-xl border border-[var(--lumino-turquoise)]/30 bg-[var(--lumino-turquoise)]/10 shrink-0">
+              <p className="text-xs font-bold text-[var(--lumino-turquoise)] line-clamp-2">{activeTask.title}</p>
+              {activeTask.attempts > 0 && (
+                <p className="text-[10px] text-[var(--lumino-text-muted)] mt-0.5">{activeTask.attempts} attempts</p>
+              )}
+            </div>
+          )}
+
+          {/* Reaction Zone - main focus */}
           <div className="flex-1 min-h-0 flex flex-col">
             <ReactionWorkspace
               atoms={atoms}
