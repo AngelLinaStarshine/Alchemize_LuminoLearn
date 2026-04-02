@@ -13,11 +13,13 @@ import { REACTION_RECT_HEIGHT, REACTION_RECT_MARGIN } from '../utils/dropZones';
 import {
   PALETTE_BOTTOM_HEIGHT,
   PALETTE_GAP,
+  PALETTE_GAP_MOBILE,
   getDropSlotCenters,
   nearestSlotIndex,
   distance2D,
   SNAP_MAGNET_OUTER_PX,
 } from '../utils/reactionLayout';
+import { useIsMobileLayout } from '../hooks/useMediaQuery';
 
 const PALETTE_WIDTH = 96;
 
@@ -66,6 +68,8 @@ export function ReactionWorkspace({
   const internalRef = useRef<HTMLDivElement>(null);
   const ref = externalRef || internalRef;
   const canvasRefInternal = useRef<HTMLCanvasElement | null>(null);
+  const isMobileLayout = useIsMobileLayout();
+  const paletteGapPx = isMobileLayout ? PALETTE_GAP_MOBILE : PALETTE_GAP;
   const [bounds, setBounds] = useState<{ width: number; height: number } | null>(null);
   const reactionAreaWidth = bounds ? bounds.width : 0;
   const reactionContentHeight = bounds
@@ -150,6 +154,7 @@ export function ReactionWorkspace({
         paletteWidth={PALETTE_WIDTH}
         paletteSide="bottom"
         paletteBottomHeight={PALETTE_BOTTOM_HEIGHT}
+        paletteGapPx={paletteGapPx}
       >
         {({ hoveredAtomId, hoveredPaletteElementId }) => (
           <>
@@ -298,13 +303,13 @@ export function ReactionWorkspace({
       {/* Elements — bottom bar, spaced for touch / pinch */}
       {onAddAtom && (
         <div
-          className="flex-shrink-0 flex flex-col items-center gap-1 py-3 px-3 sm:px-5 border-t border-[var(--lumino-border)] bg-[var(--lumino-bg-elevated)]/50 order-2 w-full justify-center"
+          className="flex-shrink-0 flex flex-col items-center gap-1 py-3 px-2 sm:px-5 pb-[max(0.75rem,env(safe-area-inset-bottom,0px))] sm:pb-3 border-t border-[var(--lumino-border)] bg-[var(--lumino-bg-elevated)]/50 order-2 w-full justify-center"
           style={{ pointerEvents: 'none', minHeight: PALETTE_BOTTOM_HEIGHT }}
         >
           <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--lumino-text-muted)]">Elements</span>
           <div
-            className="flex flex-row flex-wrap items-center justify-center"
-            style={{ gap: PALETTE_GAP }}
+            className="flex flex-row flex-wrap items-center justify-center max-w-full"
+            style={{ gap: paletteGapPx }}
           >
             {elements.map((el) => (
               <Element

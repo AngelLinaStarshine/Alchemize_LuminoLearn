@@ -21,3 +21,13 @@ export function useMediaQuery(query: string): boolean {
 export function useIsDesktopLg() {
   return useMediaQuery('(min-width: 1024px)');
 }
+
+/** Phone / small tablet layout (matches Tailwind md upper bound) */
+export function useIsMobileLayout() {
+  return useMediaQuery('(max-width: 767px)');
+}
+
+/** Primary input is touch (phones, tablets held as touch-first) */
+export function usePrefersCoarsePointer() {
+  return useMediaQuery('(pointer: coarse)');
+}

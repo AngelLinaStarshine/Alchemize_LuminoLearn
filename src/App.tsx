@@ -23,6 +23,7 @@ import { ReactionWorkspace } from './components/ReactionWorkspace';
 import { ReactionReplay } from './components/ReactionReplay';
 import { useTaskProgress } from './hooks/useTaskProgress';
 import { useHandTracking } from './hooks/useHandTracking';
+import { useIsMobileLayout } from './hooks/useMediaQuery';
 import { getTutorHint } from './services/geminiService';
 import { REACTION_RECT_HEIGHT, REACTION_RECT_MARGIN } from './utils/dropZones';
 import { expandRequirementToSlots } from './utils/taskRequirement';
@@ -30,6 +31,7 @@ import {
   ATOM_RADIUS_PX,
   PALETTE_BOTTOM_HEIGHT,
   PALETTE_GAP,
+  PALETTE_GAP_MOBILE,
   PALETTE_ITEM_SIZE,
   getDropSlotCenters,
   magnetAtomTowardSlots,
@@ -63,6 +65,8 @@ export default function App() {
     new URLSearchParams(window.location.search).get('debugSlots') === '1';
 
   const { handState, isReady } = useHandTracking(videoEl, canvasEl);
+  const isMobileLayout = useIsMobileLayout();
+  const paletteGapPick = isMobileLayout ? PALETTE_GAP_MOBILE : PALETTE_GAP;
 
   const {
     tasks,
@@ -167,11 +171,11 @@ export default function App() {
           let bestIdx = -1;
           let bestDist = 9999;
           const n = elements.length;
-          const totalW = n * PALETTE_ITEM_SIZE + (n - 1) * PALETTE_GAP;
+          const totalW = n * PALETTE_ITEM_SIZE + (n - 1) * paletteGapPick;
           const startX = (rect.width - totalW) / 2 + PALETTE_ITEM_SIZE / 2;
           const cy = rect.height - PALETTE_BOTTOM_HEIGHT / 2;
           for (let i = 0; i < n; i++) {
-            const cx = startX + i * (PALETTE_ITEM_SIZE + PALETTE_GAP);
+            const cx = startX + i * (PALETTE_ITEM_SIZE + paletteGapPick);
             const d = Math.hypot(px - cx, py - cy);
             if (d < bestDist) {
               bestDist = d;
@@ -265,7 +269,7 @@ export default function App() {
       }
       return prev;
     });
-  }, [handState, elements, activeTask]);
+  }, [handState, elements, activeTask, paletteGapPick]);
 
   const clearWorkspace = useCallback(() => {
     setAtoms([]);
@@ -338,7 +342,7 @@ export default function App() {
         const hint = await getTutorHint(currentAtoms, task.id === 1 ? null : task.reactionId ?? null);
         setAiHint(String(hint ?? 'Keep experimenting!'));
       } catch {
-        setAiHint('Pinch over the elements on the right, drop in the circle.');
+        setAiHint('Pinch over the elements at the bottom, then drop into the circles.');
       }
       setIsAiLoading(false);
     },
@@ -356,9 +360,9 @@ export default function App() {
   const allComplete = completedCount === totalTasks && totalTasks > 0;
 
   return (
-    <div className="min-h-[100dvh] h-[100dvh] lg:h-screen flex flex-col overflow-hidden bg-[var(--lumino-bg)] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+    <div className="lumino-app-root min-h-[100dvh] min-h-[100svh] h-[100dvh] h-[100svh] lg:min-h-0 lg:h-screen flex flex-col overflow-hidden bg-[var(--lumino-bg)] pt-[env(safe-area-inset-top,0px)] pb-[env(safe-area-inset-bottom,0px)] pl-[env(safe-area-inset-left,0px)] pr-[env(safe-area-inset-right,0px)]">
       {/* Main layout: stacked on mobile, Task | Workspace on lg+ */}
-      <div className="flex flex-col lg:flex-row flex-1 min-h-0">
+      <div className="flex flex-col lg:flex-row flex-1 min-h-0 min-h-[0]">
         <TaskPanel
           tasks={tasks}
           completedCount={completedCount}
@@ -390,8 +394,9 @@ export default function App() {
                 <p className="text-[9px] sm:text-[10px] text-[var(--lumino-text-muted)] font-medium tracking-wider">
                   Online Learning Academy
                 </p>
-                <p className="text-[8px] sm:text-[9px] text-[var(--lumino-turquoise)]/80 uppercase tracking-wider mt-0.5 hidden sm:block">
-                  Alchemize • Pinch atoms • Drop in zone • Check reaction
+                <p className="text-[8px] sm:text-[9px] text-[var(--lumino-turquoise)]/80 uppercase tracking-wider mt-0.5 leading-snug">
+                  <span className="sm:hidden">Pinch • Drop in circles • Check</span>
+                  <span className="hidden sm:inline">Alchemize • Pinch atoms • Drop in zone • Check reaction</span>
                 </p>
               </div>
             </div>
@@ -428,7 +433,7 @@ export default function App() {
             />
 
             {/* Bottom Action Bar */}
-            <div className="flex items-stretch sm:items-center justify-center gap-2 sm:gap-4 flex-shrink-0 py-2 sm:py-4 border-t border-[var(--lumino-border)] mt-1 sm:mt-2 px-1">
+            <div className="flex items-stretch sm:items-center justify-center gap-2 sm:gap-4 flex-shrink-0 py-2 pb-[max(0.5rem,env(safe-area-inset-bottom))] sm:py-4 sm:pb-4 border-t border-[var(--lumino-border)] mt-1 sm:mt-2 px-1">
               <button
                 type="button"
                 onClick={clearWorkspace}
@@ -480,8 +485,9 @@ export default function App() {
             </div>
             <p className="text-sm text-[var(--lumino-text-muted)] italic leading-relaxed">"{aiHint}"</p>
             <button
+              type="button"
               onClick={() => setAiHint(null)}
-              className="mt-4 w-full py-2.5 rounded-xl font-bold text-sm bg-[var(--lumino-turquoise)]/20 hover:bg-[var(--lumino-turquoise)]/30 text-[var(--lumino-turquoise)] transition-all"
+              className="mt-4 w-full py-3 min-h-[44px] rounded-xl font-bold text-sm bg-[var(--lumino-turquoise)]/20 hover:bg-[var(--lumino-turquoise)]/30 text-[var(--lumino-turquoise)] transition-all touch-manipulation"
             >
               Got it
             </button>
@@ -502,8 +508,9 @@ export default function App() {
               {guidedSolution}
             </pre>
             <button
+              type="button"
               onClick={() => setGuidedSolution(null)}
-              className="mt-4 w-full py-2.5 rounded-xl font-bold text-sm bg-[var(--lumino-yellow)]/20 hover:bg-[var(--lumino-yellow)]/30 text-[var(--lumino-yellow)] transition-all"
+              className="mt-4 w-full py-3 min-h-[44px] rounded-xl font-bold text-sm bg-[var(--lumino-yellow)]/20 hover:bg-[var(--lumino-yellow)]/30 text-[var(--lumino-yellow)] transition-all touch-manipulation"
             >
               Close
             </button>
@@ -521,7 +528,7 @@ export default function App() {
             initial={{ scale: 0.9, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
             transition={{ type: 'spring', damping: 25 }}
-            className="p-8 rounded-2xl lumino-card border-2 border-[var(--lumino-turquoise)]/50 text-center max-w-sm"
+            className="p-6 sm:p-8 rounded-2xl lumino-card border-2 border-[var(--lumino-turquoise)]/50 text-center max-w-sm max-h-[min(90dvh,90svh)] overflow-y-auto mx-4 touch-pan-y"
           >
             <Sparkles className="w-14 h-14 text-[var(--lumino-yellow)] mx-auto mb-4" />
             <h2 className="text-2xl font-bold text-[var(--lumino-text)] mb-2">Lab Complete!</h2>
@@ -532,8 +539,9 @@ export default function App() {
               <p className="text-xs text-[var(--lumino-text-muted)] mb-4">Challenge mode unlocked!</p>
             )}
             <button
+              type="button"
               onClick={handleReset}
-              className="px-6 py-3 rounded-xl font-bold text-sm bg-[var(--lumino-turquoise)] hover:bg-[var(--lumino-turquoise)]/90 text-[var(--lumino-bg)] transition-all"
+              className="px-6 py-3 min-h-[44px] rounded-xl font-bold text-sm bg-[var(--lumino-turquoise)] hover:bg-[var(--lumino-turquoise)]/90 text-[var(--lumino-bg)] transition-all touch-manipulation"
             >
               Start Over
             </button>

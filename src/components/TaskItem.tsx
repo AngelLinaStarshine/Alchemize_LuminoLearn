@@ -142,8 +142,9 @@ export function TaskItem({
             <div className="mt-3 flex flex-wrap gap-2">
               {shouldShowHint && onHint && (
                 <button
+                  type="button"
                   onClick={() => onHint(task)}
-                  className="flex items-center gap-2 text-xs font-bold text-[var(--lumino-text)] bg-[var(--lumino-turquoise)]/20 hover:bg-[var(--lumino-turquoise)]/30 border border-[var(--lumino-turquoise)]/40 transition-all rounded-lg px-3 py-1.5"
+                  className="flex items-center gap-2 text-xs font-bold text-[var(--lumino-text)] bg-[var(--lumino-turquoise)]/20 hover:bg-[var(--lumino-turquoise)]/30 border border-[var(--lumino-turquoise)]/40 transition-all rounded-lg px-3 py-2 min-h-[40px] touch-manipulation"
                 >
                   <HelpCircle className="w-3.5 h-3.5" />
                   Show Hint
@@ -151,8 +152,9 @@ export function TaskItem({
               )}
               {shouldShowGuidedSolution && onShowSolution && (
                 <button
+                  type="button"
                   onClick={() => onShowSolution(task)}
-                  className="flex items-center gap-2 text-xs font-bold text-[var(--lumino-yellow)] bg-[var(--lumino-yellow)]/20 hover:bg-[var(--lumino-yellow)]/30 border border-[var(--lumino-yellow)]/40 transition-all rounded-lg px-3 py-1.5"
+                  className="flex items-center gap-2 text-xs font-bold text-[var(--lumino-yellow)] bg-[var(--lumino-yellow)]/20 hover:bg-[var(--lumino-yellow)]/30 border border-[var(--lumino-yellow)]/40 transition-all rounded-lg px-3 py-2 min-h-[40px] touch-manipulation"
                 >
                   <Target className="w-3.5 h-3.5" />
                   Show Solution

@@ -29,9 +29,15 @@
   --color-lumino-yellow: var(--lumino-yellow);
 }
 
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
 html, body {
   @apply font-sans antialiased overflow-hidden;
   min-height: 100dvh;
+  min-height: 100svh;
   height: 100%;
   background: var(--lumino-bg);
   color: var(--lumino-text);
@@ -39,8 +45,18 @@ html, body {
 
 #root {
   min-height: 100dvh;
+  min-height: 100svh;
   height: 100%;
   overflow: hidden;
+  /* Let app shell handle safe-area; avoids double insets on some WebViews */
+  isolation: isolate;
+}
+
+/* Touch targets: reduce double-tap zoom delay on actionable controls */
+button,
+[role="button"],
+a {
+  touch-action: manipulation;
 }
 
 /* LuminoDesign cards */

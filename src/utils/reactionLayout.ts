@@ -14,7 +14,10 @@ export const DROP_SLOT_GAP = 18;
 export const DROP_SLOT_RADIUS_PX = DROP_SLOT_SIZE / 2;
 
 export const PALETTE_ITEM_SIZE = 56;
+/** Desktop / pointer-first spacing between palette atoms */
 export const PALETTE_GAP = 24;
+/** Narrow screens — still matches InteractionController when prop is passed */
+export const PALETTE_GAP_MOBILE = 12;
 
 export const PALETTE_BOTTOM_HEIGHT = 96;
 

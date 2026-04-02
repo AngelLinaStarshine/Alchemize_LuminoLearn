@@ -31,7 +31,7 @@ export function TaskPanel({
   const progress = totalTasks > 0 ? (completedCount / totalTasks) * 100 : 0;
 
   return (
-    <div className="w-full max-h-[min(40vh,340px)] lg:max-h-none lg:w-80 lg:h-full shrink-0 flex flex-col lumino-card border-b lg:border-b-0 lg:border-r border-[var(--lumino-border)] overflow-hidden">
+    <div className="w-full max-h-[min(42svh,380px)] md:max-h-[min(44vh,400px)] lg:max-h-none lg:w-80 lg:h-full shrink-0 flex flex-col lumino-card border-b lg:border-b-0 lg:border-r border-[var(--lumino-border)] overflow-hidden touch-pan-y">
       {/* Header */}
       <div className="p-4 border-b border-[var(--lumino-border)] flex-shrink-0">
         <div className="flex items-center justify-between mb-4">
@@ -48,8 +48,9 @@ export function TaskPanel({
           </div>
           {onReset && (
             <button
+              type="button"
               onClick={onReset}
-              className="p-2 rounded-lg text-[var(--lumino-text-muted)] hover:text-[var(--lumino-turquoise)] hover:bg-[var(--lumino-turquoise)]/10 transition-all"
+              className="p-2 min-w-[44px] min-h-[44px] inline-flex items-center justify-center rounded-lg text-[var(--lumino-text-muted)] hover:text-[var(--lumino-turquoise)] hover:bg-[var(--lumino-turquoise)]/10 transition-all touch-manipulation"
               title="Reset progress"
             >
               <RotateCcw className="w-4 h-4" />
@@ -88,7 +89,10 @@ export function TaskPanel({
       )}
 
       {/* Task list - Challenge + Think First */}
-      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
+      <div
+        className="flex-1 min-h-0 overflow-y-auto overscroll-y-contain p-3 sm:p-4 space-y-3 sm:space-y-4"
+        style={{ WebkitOverflowScrolling: 'touch' }}
+      >
         {tasks.map((task, index) => (
           <TaskItem
             key={task.id}

@@ -26,6 +26,8 @@ export interface InteractionControllerProps {
   paletteWidth?: number;
   paletteSide?: 'left' | 'right' | 'bottom';
   paletteBottomHeight?: number;
+  /** Horizontal gap between bottom palette items (px) — must match DOM */
+  paletteGapPx?: number;
 }
 
 export function InteractionController({
@@ -37,14 +39,16 @@ export function InteractionController({
   paletteWidth = 96,
   paletteSide = 'right',
   paletteBottomHeight = DEFAULT_PALETTE_BOTTOM_HEIGHT,
+  paletteGapPx = PALETTE_GAP,
 }: InteractionControllerProps) {
-  const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
+  const [pointerPos, setPointerPos] = useState<{ x: number; y: number } | null>(null);
 
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent<HTMLDivElement>) => {
+  /** Pointer API covers mouse, touch, pen — same coords as hand tracking (container-local). */
+  const handlePointerMove = useCallback(
+    (e: React.PointerEvent<HTMLDivElement>) => {
       const rect = containerRef.current?.getBoundingClientRect();
       if (!rect) return;
-      setMousePos({
+      setPointerPos({
         x: e.clientX - rect.left,
         y: e.clientY - rect.top,
       });
@@ -52,19 +56,19 @@ export function InteractionController({
     [containerRef]
   );
 
-  const handleMouseLeave = useCallback(() => setMousePos(null), []);
+  const clearPointer = useCallback(() => setPointerPos(null), []);
 
   const rect = containerRef.current?.getBoundingClientRect();
   const handPos = handState && rect ? { x: handState.x * rect.width, y: handState.y * rect.height } : null;
   const isDragging = atoms.some((a) => a.isDragging);
-  const hasAnyPointer = mousePos || handPos;
+  const hasAnyPointer = pointerPos || handPos;
 
   let hoveredAtomId: string | null = null;
   let hoveredPaletteElementId: string | null = null;
 
   if (rect && hasAnyPointer && !isDragging) {
-    const px = handPos ? handPos.x : mousePos!.x;
-    const py = handPos ? handPos.y : mousePos!.y;
+    const px = handPos ? handPos.x : pointerPos!.x;
+    const py = handPos ? handPos.y : pointerPos!.y;
 
     let inPalette = false;
     if (paletteSide === 'bottom') {
@@ -78,11 +82,11 @@ export function InteractionController({
     if (inPalette) {
       if (paletteSide === 'bottom') {
         const n = elements.length;
-        const totalW = n * PALETTE_ITEM_SIZE + (n - 1) * PALETTE_GAP;
+        const totalW = n * PALETTE_ITEM_SIZE + (n - 1) * paletteGapPx;
         const startX = (rect.width - totalW) / 2 + PALETTE_ITEM_SIZE / 2;
         const cy = rect.height - paletteBottomHeight / 2;
         for (let i = 0; i < n; i++) {
-          const cx = startX + i * (PALETTE_ITEM_SIZE + PALETTE_GAP);
+          const cx = startX + i * (PALETTE_ITEM_SIZE + paletteGapPx);
           if (Math.hypot(px - cx, py - cy) < 50) {
             hoveredPaletteElementId = elements[i].id;
             break;
@@ -111,10 +115,11 @@ export function InteractionController({
     <>
       {children({ hoveredAtomId, hoveredPaletteElementId })}
       <div
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
+        onPointerMove={handlePointerMove}
+        onPointerLeave={clearPointer}
+        onPointerCancel={clearPointer}
         className="absolute inset-0 z-[1]"
-        style={{ pointerEvents: 'auto' }}
+        style={{ pointerEvents: 'auto', touchAction: 'none' }}
         aria-hidden
       />
     </>
