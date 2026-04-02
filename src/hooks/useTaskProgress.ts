@@ -67,7 +67,7 @@ export function useTaskProgress() {
       success: boolean;
       message?: string;
       feedback?: string;
-      reaction?: { name: string; formula: string };
+      reaction?: { id?: string; name: string; formula: string };
       solvedFast?: boolean;
     } => {
       if (!activeTask) {

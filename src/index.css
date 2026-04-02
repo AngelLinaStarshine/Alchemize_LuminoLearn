@@ -31,12 +31,14 @@
 
 html, body {
   @apply font-sans antialiased overflow-hidden;
+  min-height: 100dvh;
   height: 100%;
   background: var(--lumino-bg);
   color: var(--lumino-text);
 }
 
 #root {
+  min-height: 100dvh;
   height: 100%;
   overflow: hidden;
 }

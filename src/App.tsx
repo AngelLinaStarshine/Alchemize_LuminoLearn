@@ -24,6 +24,17 @@ import { ReactionReplay } from './components/ReactionReplay';
 import { useTaskProgress } from './hooks/useTaskProgress';
 import { useHandTracking } from './hooks/useHandTracking';
 import { getTutorHint } from './services/geminiService';
+import { REACTION_RECT_HEIGHT, REACTION_RECT_MARGIN } from './utils/dropZones';
+import { expandRequirementToSlots } from './utils/taskRequirement';
+import {
+  ATOM_RADIUS_PX,
+  PALETTE_BOTTOM_HEIGHT,
+  PALETTE_GAP,
+  PALETTE_ITEM_SIZE,
+  getDropSlotCenters,
+  magnetAtomTowardSlots,
+  snapDropToNearestFreeSlot,
+} from './utils/reactionLayout';
 
 export default function App() {
   const [atoms, setAtoms] = useState<AtomInstance[]>([]);
@@ -47,6 +58,10 @@ export default function App() {
   const workspaceRef = useRef<HTMLDivElement>(null);
   const elements = ReactionEngine.getAllElements();
 
+  const debugInteraction =
+    typeof window !== 'undefined' &&
+    new URLSearchParams(window.location.search).get('debugSlots') === '1';
+
   const { handState, isReady } = useHandTracking(videoEl, canvasEl);
 
   const {
@@ -62,36 +77,44 @@ export default function App() {
     challengeModeUnlocked,
   } = useTaskProgress();
 
-  const REACTION_RECT_HEIGHT = 140;
-  const REACTION_RECT_MARGIN = 16;
-  const PALETTE_ZONE_TOP = 140;
-  const PALETTE_WIDTH = 96;
-
   const addAtom = useCallback((elementId: string, x?: number, y?: number) => {
     const element = ReactionEngine.getElement(elementId);
     if (!element) return;
 
     const rect = workspaceRef.current?.getBoundingClientRect();
-    const w = (rect?.width ?? 500) - 96;
-    const h = rect?.height ?? 300;
-    const zoneTop = h - REACTION_RECT_HEIGHT - REACTION_RECT_MARGIN;
-    const zoneBottom = h - REACTION_RECT_MARGIN;
+    const w = rect?.width ?? 500;
+    const contentH = (rect?.height ?? 300) - PALETTE_BOTTOM_HEIGHT;
+    const zoneTop = contentH - REACTION_RECT_HEIGHT - REACTION_RECT_MARGIN;
+    const zoneBottom = contentH - REACTION_RECT_MARGIN;
     const zoneCenterX = w / 2;
     const zoneCenterY = zoneTop + (zoneBottom - zoneTop) / 2;
 
     setAtoms((prev) => {
-      const rowSpacing = 48;
-      const startX = zoneCenterX - (prev.length * rowSpacing) / 2;
+      const slots = expandRequirementToSlots(activeTask?.requirement, elements, activeTask?.formula);
+      const centers = getDropSlotCenters(w, contentH, slots.length);
+      let nx = x;
+      let ny = y;
+      if (nx == null || ny == null) {
+        if (centers.length > 0) {
+          const idx = Math.min(prev.length, centers.length - 1);
+          nx = centers[idx].x;
+          ny = centers[idx].y;
+        } else {
+          const rowSpacing = 48;
+          nx = zoneCenterX - (prev.length * rowSpacing) / 2 + prev.length * rowSpacing;
+          ny = zoneCenterY;
+        }
+      }
       const newAtom: AtomInstance = {
         instanceId: Math.random().toString(36).slice(2, 11),
         elementId,
-        x: x ?? startX + prev.length * rowSpacing,
-        y: y ?? zoneCenterY,
+        x: nx!,
+        y: ny!,
         isDragging: false,
       };
       return [...prev, newAtom];
     });
-  }, []);
+  }, [activeTask, elements]);
 
   useEffect(() => {
     if (!handState || !workspaceRef.current || !activeTask) return;
@@ -101,11 +124,19 @@ export default function App() {
     const rect = workspaceRef.current.getBoundingClientRect();
     const px = x * rect.width;
     const py = y * rect.height;
-    const reactionWidth = rect.width - PALETTE_WIDTH;
-    const zoneTop = rect.height - REACTION_RECT_HEIGHT - REACTION_RECT_MARGIN;
-    const zoneBottom = rect.height - REACTION_RECT_MARGIN;
+    const reactionWidth = rect.width;
+    const contentH = rect.height - PALETTE_BOTTOM_HEIGHT;
+    const zoneTop = contentH - REACTION_RECT_HEIGHT - REACTION_RECT_MARGIN;
+    const zoneBottom = contentH - REACTION_RECT_MARGIN;
     const zoneLeft = REACTION_RECT_MARGIN;
     const zoneRight = reactionWidth - REACTION_RECT_MARGIN;
+
+    const requirementSlots = expandRequirementToSlots(
+      activeTask.requirement,
+      elements,
+      activeTask.formula
+    );
+    const slotCenters = getDropSlotCenters(reactionWidth, contentH, requirementSlots.length);
 
     const isInsideDropZone = () => {
       return px >= zoneLeft && px <= zoneRight && py >= zoneTop && py <= zoneBottom;
@@ -117,50 +148,66 @@ export default function App() {
       if (isHolding) {
         if (draggingIdx >= 0) {
           const atom = prev[draggingIdx];
-          const clampX = Math.max(zoneLeft + 20, Math.min(zoneRight - 20, px));
-          const clampY = Math.max(zoneTop + 20, Math.min(zoneBottom - 20, py));
-          if (Math.abs(atom.x - clampX) < 3 && Math.abs(atom.y - clampY) < 3) return prev;
+          const pad = ATOM_RADIUS_PX + 4;
+          let clampX = Math.max(zoneLeft + pad, Math.min(zoneRight - pad, px));
+          let clampY = Math.max(zoneTop + pad, Math.min(zoneBottom - pad, py));
+          if (slotCenters.length > 0) {
+            const pulled = magnetAtomTowardSlots(clampX, clampY, slotCenters);
+            clampX = pulled.x;
+            clampY = pulled.y;
+          }
+          if (Math.abs(atom.x - clampX) < 2 && Math.abs(atom.y - clampY) < 2) return prev;
           const next = [...prev];
           next[draggingIdx] = { ...atom, x: clampX, y: clampY };
           return next;
         }
 
-        if (px > rect.width - PALETTE_WIDTH) {
-          const paletteCenterX = rect.width - PALETTE_WIDTH / 2;
-          const itemSize = 56;
-          const itemGap = 40;
-          const topOffset = 100;
+        const tryPalettePick = (): AtomInstance[] | null => {
+          if (py <= rect.height - PALETTE_BOTTOM_HEIGHT) return null;
           let bestIdx = -1;
           let bestDist = 9999;
-          for (let i = 0; i < elements.length; i++) {
-            const cy = topOffset + i * (itemSize + itemGap) + itemSize / 2;
-            const d = Math.hypot(px - paletteCenterX, py - cy);
-            if (d < bestDist) { bestDist = d; bestIdx = i; }
+          const n = elements.length;
+          const totalW = n * PALETTE_ITEM_SIZE + (n - 1) * PALETTE_GAP;
+          const startX = (rect.width - totalW) / 2 + PALETTE_ITEM_SIZE / 2;
+          const cy = rect.height - PALETTE_BOTTOM_HEIGHT / 2;
+          for (let i = 0; i < n; i++) {
+            const cx = startX + i * (PALETTE_ITEM_SIZE + PALETTE_GAP);
+            const d = Math.hypot(px - cx, py - cy);
+            if (d < bestDist) {
+              bestDist = d;
+              bestIdx = i;
+            }
           }
-          if (bestIdx >= 0 && bestDist < 42 && !prev.some((a) => a.isDragging)) {
-            const el = elements[bestIdx];
-            const centerX = zoneLeft + (zoneRight - zoneLeft) / 2;
-            const totalCount = prev.length + 1;
-            const startX = centerX - (totalCount * 48) / 2 + prev.length * 48;
-            const startY = zoneTop + (zoneBottom - zoneTop) / 2;
-            return [
-              ...prev,
-              {
-                instanceId: Math.random().toString(36).slice(2, 11),
-                elementId: el.id,
-                x: startX,
-                y: startY,
-                isDragging: true,
-                dragStartX: startX,
-                dragStartY: startY,
-              },
-            ];
-          }
-        }
+          if (bestIdx < 0 || bestDist >= 50 || prev.some((a) => a.isDragging)) return null;
+          const el = elements[bestIdx];
+          const spawnSlots = getDropSlotCenters(reactionWidth, contentH, requirementSlots.length);
+          const spawn =
+            spawnSlots.length > 0
+              ? spawnSlots[Math.min(prev.length, spawnSlots.length - 1)]
+              : {
+                  x: zoneLeft + (zoneRight - zoneLeft) / 2,
+                  y: zoneTop + (zoneBottom - zoneTop) / 2,
+                };
+          return [
+            ...prev,
+            {
+              instanceId: Math.random().toString(36).slice(2, 11),
+              elementId: el.id,
+              x: spawn.x,
+              y: spawn.y,
+              isDragging: true,
+              dragStartX: spawn.x,
+              dragStartY: spawn.y,
+            },
+          ];
+        };
+
+        const picked = tryPalettePick();
+        if (picked) return picked;
 
         const closestIdx = prev.findIndex((a) => {
           const d = Math.hypot(a.x - px, a.y - py);
-          return d < 65;
+          return d < ATOM_RADIUS_PX + 28;
         });
         if (closestIdx >= 0) {
           const next = [...prev];
@@ -172,12 +219,31 @@ export default function App() {
         if (draggingIdx >= 0) {
           const atom = prev[draggingIdx];
           if (isInsideDropZone()) {
-            const countInZone = prev.filter((a) => a.instanceId !== atom.instanceId).length;
-            const rowWidth = zoneRight - zoneLeft - 80;
-            const spacing = Math.min(48, rowWidth / Math.max(1, countInZone + 1));
-            const startX = zoneLeft + (zoneRight - zoneLeft) / 2 - (countInZone * spacing) / 2;
-            const dropX = startX + countInZone * spacing;
-            const dropY = zoneTop + (zoneBottom - zoneTop) / 2;
+            const others = prev.filter((a) => a.instanceId !== atom.instanceId);
+            let dropX = atom.x;
+            let dropY = atom.y;
+            if (slotCenters.length > 0) {
+              const snapped = snapDropToNearestFreeSlot(
+                atom.x,
+                atom.y,
+                px,
+                py,
+                slotCenters,
+                others
+              );
+              dropX = snapped.x;
+              dropY = snapped.y;
+            } else {
+              const countInZone = others.filter(
+                (a) =>
+                  a.x >= zoneLeft && a.x <= zoneRight && a.y >= zoneTop && a.y <= zoneBottom
+              ).length;
+              const rowWidth = zoneRight - zoneLeft - 80;
+              const spacing = Math.min(48, rowWidth / Math.max(1, countInZone + 1));
+              const startX = zoneLeft + (zoneRight - zoneLeft) / 2 - (countInZone * spacing) / 2;
+              dropX = startX + countInZone * spacing;
+              dropY = zoneTop + (zoneBottom - zoneTop) / 2;
+            }
             return prev.map((a) =>
               a.instanceId === atom.instanceId
                 ? { ...a, isDragging: false, x: dropX, y: dropY, dragStartX: undefined, dragStartY: undefined }
@@ -212,9 +278,10 @@ export default function App() {
   const handleCheck = useCallback(() => {
     const rect = workspaceRef.current?.getBoundingClientRect();
     if (!rect) return;
-    const reactionWidth = rect.width - PALETTE_WIDTH;
-    const zoneTop = rect.height - REACTION_RECT_HEIGHT - REACTION_RECT_MARGIN;
-    const zoneBottom = rect.height - REACTION_RECT_MARGIN;
+    const reactionWidth = rect.width;
+    const contentH = rect.height - PALETTE_BOTTOM_HEIGHT;
+    const zoneTop = contentH - REACTION_RECT_HEIGHT - REACTION_RECT_MARGIN;
+    const zoneBottom = contentH - REACTION_RECT_MARGIN;
     const zoneLeft = REACTION_RECT_MARGIN;
     const zoneRight = reactionWidth - REACTION_RECT_MARGIN;
     const insideZone = atoms.filter(
@@ -289,9 +356,9 @@ export default function App() {
   const allComplete = completedCount === totalTasks && totalTasks > 0;
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-[var(--lumino-bg)]">
-      {/* Main layout: Task | Workspace | (palette inside workspace) */}
-      <div className="flex flex-1 min-h-0">
+    <div className="min-h-[100dvh] h-[100dvh] lg:h-screen flex flex-col overflow-hidden bg-[var(--lumino-bg)] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
+      {/* Main layout: stacked on mobile, Task | Workspace on lg+ */}
+      <div className="flex flex-col lg:flex-row flex-1 min-h-0">
         <TaskPanel
           tasks={tasks}
           completedCount={completedCount}
@@ -305,32 +372,32 @@ export default function App() {
           feedbackType={feedback?.type}
         />
 
-        {/* Center: Reaction zone (top) + Action bar (bottom) */}
-        <div className="flex-1 flex flex-col min-w-0 p-4 gap-4">
+        {/* Center: Reaction zone + Action bar */}
+        <div className="flex-1 flex flex-col min-w-0 min-h-0 p-2 sm:p-4 gap-2 sm:gap-4">
           {/* Compact header */}
-          <div className="flex items-center justify-between flex-shrink-0">
-            <div className="flex items-center gap-3">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 flex-shrink-0">
+            <div className="flex items-center gap-2 sm:gap-3 min-w-0">
               <img
                 src="/luminolearn-logo.png"
                 alt="LUMINOLEARN"
-                className="w-12 h-12 object-contain rounded-full bg-white/5 p-0.5 border border-[var(--lumino-border)]"
+                className="w-10 h-10 sm:w-12 sm:h-12 shrink-0 object-contain rounded-full bg-white/5 p-0.5 border border-[var(--lumino-border)]"
                 onError={(e) => { e.currentTarget.onerror = null; e.currentTarget.src = '/luminolearn-logo.svg'; }}
               />
-              <div>
-                <h1 className="text-lg font-black text-[var(--lumino-text)] tracking-tight uppercase">
+              <div className="min-w-0">
+                <h1 className="text-base sm:text-lg font-black text-[var(--lumino-text)] tracking-tight uppercase truncate">
                   LUMINOLEARN
                 </h1>
-                <p className="text-[10px] text-[var(--lumino-text-muted)] font-medium tracking-wider">
+                <p className="text-[9px] sm:text-[10px] text-[var(--lumino-text-muted)] font-medium tracking-wider">
                   Online Learning Academy
                 </p>
-                <p className="text-[9px] text-[var(--lumino-turquoise)]/80 uppercase tracking-wider mt-0.5">
-                  Alchemize • Pinch atoms • Drop in circle • Check reaction
+                <p className="text-[8px] sm:text-[9px] text-[var(--lumino-turquoise)]/80 uppercase tracking-wider mt-0.5 hidden sm:block">
+                  Alchemize • Pinch atoms • Drop in zone • Check reaction
                 </p>
               </div>
             </div>
             {activeTask && (
-              <div className="px-4 py-2 rounded-xl border border-[var(--lumino-turquoise)]/30 bg-[var(--lumino-turquoise)]/10">
-                <p className="text-xs font-bold text-[var(--lumino-turquoise)]">{activeTask.title}</p>
+              <div className="px-3 py-2 sm:px-4 rounded-xl border border-[var(--lumino-turquoise)]/30 bg-[var(--lumino-turquoise)]/10 shrink-0 w-full sm:w-auto">
+                <p className="text-[11px] sm:text-xs font-bold text-[var(--lumino-turquoise)] line-clamp-2">{activeTask.title}</p>
                 {activeTask.attempts > 0 && (
                   <p className="text-[10px] text-[var(--lumino-text-muted)] mt-0.5">{activeTask.attempts} attempts</p>
                 )}
@@ -355,21 +422,26 @@ export default function App() {
               handState={handState}
               isReady={isReady}
               completedMolecules={completedMolecules}
+              taskRequirement={activeTask?.requirement}
+              taskFormula={activeTask?.formula}
+              debugInteraction={debugInteraction}
             />
 
             {/* Bottom Action Bar */}
-            <div className="flex items-center justify-center gap-4 flex-shrink-0 py-4 border-t border-[var(--lumino-border)] mt-2">
+            <div className="flex items-stretch sm:items-center justify-center gap-2 sm:gap-4 flex-shrink-0 py-2 sm:py-4 border-t border-[var(--lumino-border)] mt-1 sm:mt-2 px-1">
               <button
+                type="button"
                 onClick={clearWorkspace}
                 disabled={!!pendingReaction}
-                className="flex items-center gap-2 px-5 py-2.5 rounded-xl border border-[var(--lumino-border)] text-[var(--lumino-text-muted)] font-bold text-sm hover:bg-[var(--lumino-bg-elevated)] hover:text-[var(--lumino-text)] transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center gap-2 px-4 sm:px-5 py-3 sm:py-2.5 rounded-xl border border-[var(--lumino-border)] text-[var(--lumino-text-muted)] font-bold text-sm min-h-[44px] min-w-[44px] hover:bg-[var(--lumino-bg-elevated)] hover:text-[var(--lumino-text)] transition-all disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation"
               >
-                <RotateCcw className="w-4 h-4" /> Clear
+                <RotateCcw className="w-4 h-4 shrink-0" /> <span className="hidden min-[400px]:inline">Clear</span>
               </button>
               <button
+                type="button"
                 onClick={handleCheck}
                 disabled={!activeTask || allComplete || !!pendingReaction}
-                className="flex items-center gap-2 px-8 py-3.5 rounded-xl font-bold text-sm transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                className="flex items-center justify-center gap-2 flex-1 sm:flex-initial px-4 sm:px-8 py-3 sm:py-3.5 rounded-xl font-bold text-sm min-h-[44px] transition-all disabled:opacity-50 disabled:cursor-not-allowed touch-manipulation active:scale-[0.98]"
                 style={{
                   background: activeTask
                     ? 'linear-gradient(135deg, var(--lumino-yellow), #d4c84a)'
@@ -400,7 +472,7 @@ export default function App() {
             initial={{ opacity: 0, x: 20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: 20 }}
-            className="fixed top-20 right-6 max-w-xs p-5 rounded-2xl lumino-card border border-[var(--lumino-turquoise)]/40 z-50"
+            className="fixed left-4 right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] max-h-[45vh] overflow-y-auto sm:left-auto sm:bottom-auto sm:top-20 sm:right-6 sm:max-w-xs p-5 rounded-2xl lumino-card border border-[var(--lumino-turquoise)]/40 z-50"
           >
             <div className="flex items-center gap-2 mb-2">
               <HelpCircle className="w-4 h-4 text-[var(--lumino-turquoise)]" />
@@ -420,7 +492,7 @@ export default function App() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed top-20 right-6 max-w-xs p-5 rounded-2xl lumino-card border border-[var(--lumino-yellow)]/40 z-50"
+            className="fixed left-4 right-4 bottom-[calc(1rem+env(safe-area-inset-bottom))] max-h-[45vh] overflow-y-auto sm:left-auto sm:bottom-auto sm:top-20 sm:right-6 sm:max-w-xs p-5 rounded-2xl lumino-card border border-[var(--lumino-yellow)]/40 z-50"
           >
             <div className="flex items-center gap-2 mb-2">
               <Target className="w-4 h-4 text-[var(--lumino-yellow)]" />

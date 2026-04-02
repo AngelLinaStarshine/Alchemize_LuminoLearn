@@ -31,7 +31,7 @@ export function TaskPanel({
   const progress = totalTasks > 0 ? (completedCount / totalTasks) * 100 : 0;
 
   return (
-    <div className="w-80 flex-shrink-0 flex flex-col h-full lumino-card border-r border-[var(--lumino-border)] overflow-hidden">
+    <div className="w-full max-h-[min(40vh,340px)] lg:max-h-none lg:w-80 lg:h-full shrink-0 flex flex-col lumino-card border-b lg:border-b-0 lg:border-r border-[var(--lumino-border)] overflow-hidden">
       {/* Header */}
       <div className="p-4 border-b border-[var(--lumino-border)] flex-shrink-0">
         <div className="flex items-center justify-between mb-4">

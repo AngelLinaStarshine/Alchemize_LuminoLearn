@@ -1,14 +1,16 @@
 /**
  * InteractionController - Mouse vs camera hover logic
- * Supports left/right palette. Produces hoveredAtomId, hoveredPaletteElementId
+ * Palette: right (desktop) or bottom (mobile)
  */
 
 import React, { useState, useCallback } from 'react';
 import type { AtomInstance, Element } from '../types';
-
-const PALETTE_ITEM_SIZE = 56;
-const PALETTE_GAP = 40;
-const PALETTE_TOP_OFFSET = 100;
+import {
+  ATOM_RADIUS_PX,
+  PALETTE_BOTTOM_HEIGHT as DEFAULT_PALETTE_BOTTOM_HEIGHT,
+  PALETTE_GAP,
+  PALETTE_ITEM_SIZE,
+} from '../utils/reactionLayout';
 
 export interface InteractionState {
   hoveredAtomId: string | null;
@@ -22,7 +24,8 @@ export interface InteractionControllerProps {
   elements: Element[];
   handState: { x: number; y: number; isPinching?: boolean; isGrabbing?: boolean } | null;
   paletteWidth?: number;
-  paletteSide?: 'left' | 'right';
+  paletteSide?: 'left' | 'right' | 'bottom';
+  paletteBottomHeight?: number;
 }
 
 export function InteractionController({
@@ -33,6 +36,7 @@ export function InteractionController({
   handState,
   paletteWidth = 96,
   paletteSide = 'right',
+  paletteBottomHeight = DEFAULT_PALETTE_BOTTOM_HEIGHT,
 }: InteractionControllerProps) {
   const [mousePos, setMousePos] = useState<{ x: number; y: number } | null>(null);
 
@@ -62,23 +66,43 @@ export function InteractionController({
     const px = handPos ? handPos.x : mousePos!.x;
     const py = handPos ? handPos.y : mousePos!.y;
 
-    const inPalette = paletteSide === 'right'
-      ? px > rect.width - paletteWidth
-      : px < paletteWidth;
+    let inPalette = false;
+    if (paletteSide === 'bottom') {
+      inPalette = py > rect.height - paletteBottomHeight;
+    } else if (paletteSide === 'right') {
+      inPalette = px > rect.width - paletteWidth;
+    } else {
+      inPalette = px < paletteWidth;
+    }
 
     if (inPalette) {
-      const paletteCenterX = paletteSide === 'right'
-        ? rect.width - paletteWidth / 2
-        : paletteWidth / 2;
-      for (let i = 0; i < elements.length; i++) {
-        const centerY = PALETTE_TOP_OFFSET + i * (PALETTE_ITEM_SIZE + PALETTE_GAP) + PALETTE_ITEM_SIZE / 2;
-        if (Math.hypot(px - paletteCenterX, py - centerY) < 55) {
-          hoveredPaletteElementId = elements[i].id;
-          break;
+      if (paletteSide === 'bottom') {
+        const n = elements.length;
+        const totalW = n * PALETTE_ITEM_SIZE + (n - 1) * PALETTE_GAP;
+        const startX = (rect.width - totalW) / 2 + PALETTE_ITEM_SIZE / 2;
+        const cy = rect.height - paletteBottomHeight / 2;
+        for (let i = 0; i < n; i++) {
+          const cx = startX + i * (PALETTE_ITEM_SIZE + PALETTE_GAP);
+          if (Math.hypot(px - cx, py - cy) < 50) {
+            hoveredPaletteElementId = elements[i].id;
+            break;
+          }
+        }
+      } else {
+        const paletteCenterX = paletteSide === 'right'
+          ? rect.width - paletteWidth / 2
+          : paletteWidth / 2;
+        const topOffset = 100;
+        for (let i = 0; i < elements.length; i++) {
+          const centerY = topOffset + i * (PALETTE_ITEM_SIZE + 40) + PALETTE_ITEM_SIZE / 2;
+          if (Math.hypot(px - paletteCenterX, py - centerY) < 55) {
+            hoveredPaletteElementId = elements[i].id;
+            break;
+          }
         }
       }
     } else {
-      const atom = atoms.find((a) => Math.hypot(a.x - px, a.y - py) < 75);
+      const atom = atoms.find((a) => Math.hypot(a.x - px, a.y - py) < ATOM_RADIUS_PX + 28);
       if (atom) hoveredAtomId = atom.instanceId;
     }
   }

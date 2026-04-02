@@ -1,14 +1,16 @@
 /**
- * Element - Circular atoms with LuminoDesign hover glow
- * Color-coded per element, scale + glow on hover
+ * Element — Circular atoms. (x, y) is the **center** in lab canvas px.
+ * Position uses left/top in pixels so visual center = logic center (no translate/scale drift).
  */
 
 import React from 'react';
 import { motion } from 'motion/react';
 import { X } from 'lucide-react';
 import type { Element as ElementType } from '../types';
+import { ATOM_DIAMETER_PX, ATOM_RADIUS_PX } from '../utils/reactionLayout';
 
-const HOVER_SCALE = 1.15;
+const HOVER_SCALE = 1.12;
+const DRAG_SCALE = 1.06;
 const HOVER_GLOW = '0 0 28px';
 
 interface ElementBaseProps {
@@ -22,6 +24,7 @@ interface AtomElementProps extends ElementBaseProps {
   instanceId: string;
   x: number;
   y: number;
+  /** @deprecated ignored — radius fixed to ATOM_RADIUS_PX for alignment */
   size?: number;
   isDragging?: boolean;
   isInvalidDrop?: boolean;
@@ -51,16 +54,17 @@ export function Element(props: ElementProps) {
   if (variant === 'palette') {
     return (
       <motion.div
-        className="element-palette-item w-14 h-14 rounded-full flex items-center justify-center text-xl font-black select-none touch-none relative"
+        className="element-palette-item w-14 h-14 rounded-full flex items-center justify-center text-xl font-black select-none touch-none relative box-border"
         style={{
           backgroundColor: element.color,
           color: element.id === 'c' ? 'white' : 'inherit',
           boxShadow: isHovered ? hoverShadow : baseShadow,
           border: `2px solid ${isHovered ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)'}`,
           pointerEvents: 'none',
+          transformOrigin: '50% 50%',
         }}
         animate={{
-          scale: isHovered ? HOVER_SCALE : 1,
+          scale: isHovered ? 1.08 : 1,
         }}
         transition={{ type: 'spring', stiffness: 400, damping: 25 }}
       >
@@ -70,28 +74,39 @@ export function Element(props: ElementProps) {
   }
 
   const atomProps = props as AtomElementProps;
-  const { instanceId, x, y, size = 32, isDragging = false, isInvalidDrop = false, onRemove } = atomProps;
+  const { x, y, isDragging = false, isInvalidDrop = false, onRemove } = atomProps;
 
   return (
     <motion.div
-      layoutId={instanceId}
-      className={`element-atom absolute w-16 h-16 rounded-full flex items-center justify-center text-2xl font-black select-none touch-none relative z-20 ${isInvalidDrop ? 'invalid-drop-shake' : ''}`}
+      className={`element-atom absolute rounded-full flex items-center justify-center text-2xl font-black select-none touch-none z-20 box-border ${isInvalidDrop ? 'invalid-drop-shake' : ''}`}
       style={{
+        width: ATOM_DIAMETER_PX,
+        height: ATOM_DIAMETER_PX,
         backgroundColor: element.color,
         color: element.id === 'c' ? 'white' : 'inherit',
         boxShadow: isHovered && !isDragging ? hoverShadow : baseShadow,
-        border: `2px solid ${isHovered ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.3)'}`,
+        border: `2px solid ${isHovered ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.35)'}`,
         pointerEvents: 'none',
+        transformOrigin: '50% 50%',
+        willChange: 'left, top, transform',
       }}
       initial={{ scale: 0, opacity: 0 }}
       animate={{
-        scale: isHovered && !isDragging ? 1.12 : 1,
+        left: x - ATOM_RADIUS_PX,
+        top: y - ATOM_RADIUS_PX,
+        scale: isDragging ? DRAG_SCALE : isHovered ? HOVER_SCALE : 1,
         opacity: 1,
-        x: x - size,
-        y: y - size,
       }}
       exit={{ scale: 0, opacity: 0 }}
-      transition={{ type: 'spring', stiffness: 400, damping: 30 }}
+      transition={
+        isDragging
+          ? {
+              left: { type: 'tween', duration: 0, ease: 'linear' },
+              top: { type: 'tween', duration: 0, ease: 'linear' },
+              scale: { type: 'spring', stiffness: 520, damping: 38 },
+            }
+          : { left: { type: 'spring', stiffness: 420, damping: 34 }, top: { type: 'spring', stiffness: 420, damping: 34 }, scale: { type: 'spring', stiffness: 400, damping: 32 } }
+      }
     >
       {element.symbol}
       {onRemove && (

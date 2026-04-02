@@ -1,11 +1,23 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { ReactionEngine } from '../engine';
 import { MoleculeAnimation } from './MoleculeAnimation';
 import { Element } from './Element';
 import { ReactionZone } from './ReactionZone';
+import { DropSlotOverlay } from './DropSlotOverlay';
 import { InteractionController } from './InteractionController';
 import type { AtomInstance, Element as ElementType } from '../types';
+import type { TaskRequirement } from '../data/tasks';
+import { expandRequirementToSlots } from '../utils/taskRequirement';
+import { REACTION_RECT_HEIGHT, REACTION_RECT_MARGIN } from '../utils/dropZones';
+import {
+  PALETTE_BOTTOM_HEIGHT,
+  PALETTE_GAP,
+  getDropSlotCenters,
+  nearestSlotIndex,
+  distance2D,
+  SNAP_MAGNET_OUTER_PX,
+} from '../utils/reactionLayout';
 
 const PALETTE_WIDTH = 96;
 
@@ -24,6 +36,12 @@ interface ReactionWorkspaceProps {
   showCamera?: boolean;
   onAddAtom?: (elementId: string, x?: number, y?: number) => void;
   completedMolecules?: { name: string; formula: string }[];
+  /** Current challenge stoichiometry — renders that many ghost circles in the drop zone */
+  taskRequirement?: TaskRequirement;
+  /** When set (e.g. H2O), ghost order follows formula left-to-right */
+  taskFormula?: string;
+  /** Append ?debugSlots=1 to URL — slot centers, magnet radii, live coords */
+  debugInteraction?: boolean;
 }
 
 export function ReactionWorkspace({
@@ -41,13 +59,18 @@ export function ReactionWorkspace({
   showCamera = false,
   onAddAtom,
   completedMolecules = [],
+  taskRequirement,
+  taskFormula,
+  debugInteraction = false,
 }: ReactionWorkspaceProps) {
   const internalRef = useRef<HTMLDivElement>(null);
   const ref = externalRef || internalRef;
   const canvasRefInternal = useRef<HTMLCanvasElement | null>(null);
-
   const [bounds, setBounds] = useState<{ width: number; height: number } | null>(null);
-  const reactionAreaWidth = bounds ? bounds.width - PALETTE_WIDTH : 0;
+  const reactionAreaWidth = bounds ? bounds.width : 0;
+  const reactionContentHeight = bounds
+    ? bounds.height - PALETTE_BOTTOM_HEIGHT
+    : 0;
 
   const updateBounds = useCallback(() => {
     const el = ref.current;
@@ -66,7 +89,38 @@ export function ReactionWorkspace({
   }, [updateBounds]);
 
   const isDragActive = atoms.some((a) => a.isDragging);
-  const reactionBounds = bounds ? { width: reactionAreaWidth, height: bounds.height } : null;
+  const reactionBounds = bounds
+    ? { width: reactionAreaWidth, height: reactionContentHeight }
+    : null;
+
+  const requirementSlots = useMemo(
+    () => expandRequirementToSlots(taskRequirement, elements, taskFormula),
+    [taskRequirement, elements, taskFormula]
+  );
+
+  const slotCenters = useMemo(() => {
+    if (!reactionBounds) return [];
+    return getDropSlotCenters(
+      reactionBounds.width,
+      reactionBounds.height,
+      requirementSlots.length
+    );
+  }, [reactionBounds, requirementSlots]);
+
+  const draggingAtom = atoms.find((a) => a.isDragging);
+  let glowSlotIndex = -1;
+  if (draggingAtom && slotCenters.length > 0) {
+    const ni = nearestSlotIndex(draggingAtom.x, draggingAtom.y, slotCenters);
+    const c = slotCenters[ni];
+    if (c && distance2D(draggingAtom.x, draggingAtom.y, c.x, c.y) <= SNAP_MAGNET_OUTER_PX + 10) {
+      glowSlotIndex = ni;
+    }
+  }
+
+  const handOverlayPos =
+    handState && bounds
+      ? { x: handState.x * bounds.width, y: handState.y * bounds.height }
+      : null;
 
   useEffect(() => {
     const el = ref.current;
@@ -85,7 +139,7 @@ export function ReactionWorkspace({
   return (
     <div
       ref={ref}
-      className="relative flex-1 min-h-0 flex overflow-hidden rounded-xl border border-[var(--lumino-border)] lumino-card"
+      className="relative flex-1 min-h-0 flex flex-col overflow-hidden rounded-xl border border-[var(--lumino-border)] lumino-card min-h-[200px]"
       style={{ background: 'linear-gradient(180deg, rgba(15,23,42,0.95) 0%, rgba(30,41,59,0.5) 100%)' }}
     >
       <InteractionController
@@ -94,12 +148,13 @@ export function ReactionWorkspace({
         elements={elements}
         handState={handState ?? null}
         paletteWidth={PALETTE_WIDTH}
-        paletteSide="right"
+        paletteSide="bottom"
+        paletteBottomHeight={PALETTE_BOTTOM_HEIGHT}
       >
         {({ hoveredAtomId, hoveredPaletteElementId }) => (
           <>
-      {/* Reaction area - left/center */}
-      <div className="relative flex-1 min-w-0 reaction-zone-grid">
+      {/* Lab canvas — full width, palette is a separate strip below */}
+      <div className="relative flex-1 min-w-0 min-h-0 reaction-zone-grid order-1">
         {/* Camera layer */}
         {showCamera && videoRef && canvasRef && (
           <>
@@ -167,20 +222,31 @@ export function ReactionWorkspace({
         <ReactionZone
           bounds={reactionBounds}
           isDragActive={isDragActive}
+          slotProximityActive={glowSlotIndex >= 0}
+          slotCount={requirementSlots.length}
+        />
+
+        <DropSlotOverlay
+          centers={slotCenters}
+          isDragActive={isDragActive}
+          glowSlotIndex={glowSlotIndex}
+          debug={debugInteraction}
+          debugHandLab={handOverlayPos}
+          debugAtomCenter={draggingAtom ? { x: draggingAtom.x, y: draggingAtom.y } : null}
         />
 
         {/* Equation display */}
         <div
-          className="absolute left-1/2 -translate-x-1/2 z-10 flex items-center gap-2 px-4 py-2.5 rounded-xl border border-[var(--lumino-border)] lumino-card text-sm"
+          className="absolute left-1/2 -translate-x-1/2 z-10 flex items-center gap-1.5 sm:gap-2 max-w-[calc(100%-1rem)] px-2 py-2 sm:px-4 sm:py-2.5 rounded-xl border border-[var(--lumino-border)] lumino-card text-xs sm:text-sm"
           style={{ top: completedMolecules.length > 0 ? 52 : 16 }}
         >
           {(() => {
             const w = reactionBounds?.width ?? reactionAreaWidth;
-            const h = bounds?.height ?? 0;
-            const zoneTop = h - 140 - 16;
-            const zoneBottom = h - 16;
-            const zoneLeft = 16;
-            const zoneRight = w - 16;
+            const h = reactionBounds?.height ?? reactionContentHeight;
+            const zoneTop = h - REACTION_RECT_HEIGHT - REACTION_RECT_MARGIN;
+            const zoneBottom = h - REACTION_RECT_MARGIN;
+            const zoneLeft = REACTION_RECT_MARGIN;
+            const zoneRight = w - REACTION_RECT_MARGIN;
             const insideZone = atoms.filter(
               (a) => w > 0 && a.x >= zoneLeft && a.x <= zoneRight && a.y >= zoneTop && a.y <= zoneBottom
             );
@@ -211,7 +277,6 @@ export function ReactionWorkspace({
                 {atoms.map((atom) => {
                   const element = ReactionEngine.getElement(atom.elementId)!;
                   const isRepelling = feedback?.errorType === 'unstable' || feedback?.errorType === 'wrong_elements';
-                  const atomSize = 32;
                   return (
                     <Element
                       key={atom.instanceId}
@@ -220,7 +285,6 @@ export function ReactionWorkspace({
                       element={element}
                       x={atom.x}
                       y={atom.y}
-                      size={atomSize}
                       isHovered={hoveredAtomId === atom.instanceId}
                       isDragging={atom.isDragging}
                       isInvalidDrop={isRepelling}
@@ -231,14 +295,17 @@ export function ReactionWorkspace({
               </AnimatePresence>
       </div>
 
-      {/* Element palette - right side */}
+      {/* Elements — bottom bar, spaced for touch / pinch */}
       {onAddAtom && (
         <div
-          className="w-[96px] flex-shrink-0 flex flex-col items-center gap-8 py-6 px-3 border-l border-[var(--lumino-border)] bg-[var(--lumino-bg-elevated)]/50"
-          style={{ pointerEvents: 'none' }}
+          className="flex-shrink-0 flex flex-col items-center gap-1 py-3 px-3 sm:px-5 border-t border-[var(--lumino-border)] bg-[var(--lumino-bg-elevated)]/50 order-2 w-full justify-center"
+          style={{ pointerEvents: 'none', minHeight: PALETTE_BOTTOM_HEIGHT }}
         >
           <span className="text-[9px] font-bold uppercase tracking-widest text-[var(--lumino-text-muted)]">Elements</span>
-          <div className="flex flex-col gap-8">
+          <div
+            className="flex flex-row flex-wrap items-center justify-center"
+            style={{ gap: PALETTE_GAP }}
+          >
             {elements.map((el) => (
               <Element
                 key={el.id}

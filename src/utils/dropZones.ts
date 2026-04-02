@@ -22,7 +22,8 @@ export interface PaletteZoneConfig {
 
 const DEFAULT_PALETTE_TOP_OFFSET = 140;
 export const REACTION_RECT_HEIGHT = 140;
-export const REACTION_RECT_MARGIN = 16;
+/** Horizontal inset from workspace edges — smaller = wider drop field */
+export const REACTION_RECT_MARGIN = 4;
 
 export function getReactionRectConfig(bounds: WorkspaceBounds): ReactionRectConfig {
   const top = bounds.height - REACTION_RECT_HEIGHT - REACTION_RECT_MARGIN;
